@@ -124,3 +124,26 @@ The project is still in the early stages of development and we welcome feedback.
 - [ ] Solve the singularity problem.
 - [ ] Add the foot trajectory planning.
 - [ ] Merge the branch feature-real to the main.
+
+
+## 运行流程小结
+开启仿真：
+```
+roslaunch qm_gazebo empty_world_mpc.launch
+```
+加载控制器：
+```
+roslaunch qm_controllers load_controller_mpc.launch
+```
+使用controller_manager:
+```
+rosrun rqt_controller_manager rqt_controller_manager
+```
+目标位置:
+```
+roslaunch qm_controllers load_qm_target.launch 
+```
+启动rviz:
+```
+roslaunch qm_controllers rviz.launch
+```

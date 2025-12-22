@@ -2,11 +2,12 @@
     <arg name="kinova_robotType" default="j2n6s300"/>
     <rosparam file="$(find qm_gazebo)/config/default.yaml" command="load"/>
 
-    <param name="qm_description" command="$(find xacro)/xacro $(find qm_description)/urdf/qudraputed_manipulator/robot_mpc.xacro
+    <arg name="robot_type" default="go1"/> 
+    <param name="qm_description" command="$(find xacro)/xacro '$(find qm_description)/urdf/qudraputed_manipulator/robot_mpc.xacro' robot_type:=$(arg robot_type)
     "/>
-    <param name="robot_description" command="$(find xacro)/xacro $(find qm_description)/urdf/qudraputed_manipulator/robot_mpc.xacro
+    <param name="robot_description" command="$(find xacro)/xacro '$(find qm_description)/urdf/qudraputed_manipulator/robot_mpc.xacro' robot_type:=$(arg robot_type)
     "/>
-    <param name="legged_robot_description" command="$(find xacro)/xacro $(find qm_description)/urdf/qudraputed_manipulator/robot_mpc.xacro
+    <param name="legged_robot_description" command="$(find xacro)/xacro '$(find qm_description)/urdf/qudraputed_manipulator/robot_mpc.xacro' robot_type:=$(arg robot_type)
     "/>
 
     <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
@@ -18,13 +19,25 @@
     <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" clear_params="true"
           output="screen"
           args="-param qm_description -urdf -model qm
-    -z 0.55
-    -J $(arg kinova_robotType)_joint_1 3.14
-    -J $(arg kinova_robotType)_joint_2 3.61
-    -J $(arg kinova_robotType)_joint_3 0.86
-    -J $(arg kinova_robotType)_joint_4 2.7
-    -J $(arg kinova_robotType)_joint_5 1.37
-    -J $(arg kinova_robotType)_joint_6 -0.4
+            -z 0.55
+            -J RF_HAA -0.75 
+            -J LF_HAA  0.75 
+            -J RH_HAA -0.75 
+            -J LH_HAA  0.75 
+            -J RF_HFE  1.00 
+            -J LF_HFE  1.00 
+            -J RH_HFE  1.00 
+            -J LH_HFE  1.00 
+            -J RF_KFE -2.10 
+            -J LF_KFE -2.10 
+            -J RH_KFE -2.10 
+            -J LH_KFE -2.10 
+            -J $(arg kinova_robotType)_joint_1 3.14
+            -J $(arg kinova_robotType)_joint_2 3.61
+            -J $(arg kinova_robotType)_joint_3 0.86
+            -J $(arg kinova_robotType)_joint_4 2.7
+            -J $(arg kinova_robotType)_joint_5 1.37
+            -J $(arg kinova_robotType)_joint_6 -0.4
     "
     />
 

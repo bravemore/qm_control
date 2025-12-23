@@ -82,6 +82,7 @@ void QMInterface::setupOptimalControlProblem(const std::string &taskFile, const 
 
     // Initial state
     initialState_.setZero(centroidalModelInfo_.stateDim);
+    std::cout<<"initialStateDim:"<<initialState_.size()<<std::endl;
     loadData::loadEigenMatrix(taskFile, "initialState", initialState_);
 
     setupReferenceManager(taskFile, urdfFile, referenceFile, verbose);

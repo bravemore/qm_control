@@ -2,7 +2,7 @@
 
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="robot">
 
-    <xacro:arg name="robot_type" default="aliengo"/>
+    <xacro:arg name="robot_type" default="go1"/>
 
     <xacro:include filename="$(find qm_description)/urdf/qudraputed/common/materials.xacro"/>
     <xacro:include filename="$(find qm_description)/urdf/qudraputed/common/leg.xacro"/>

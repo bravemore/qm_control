@@ -1,11 +1,12 @@
 <?xml version="1.0" ?>
 
 <launch>
+    <arg name="robot_type" default="go1"/> 
 
     <arg name="urdfFile" default="$(find qm_description)/urdf/qudraputed_manipulator/robot.urdf"/>
-    <arg name="taskFile" default="$(find qm_controllers)/config/task.info"/>
-    <arg name="referenceFile" default="$(find qm_controllers)/config/reference.info"/>
-    <arg name="gaitCommandFile" default="$(find qm_controllers)/config/gait.info"/>
+    <arg name="taskFile" default="$(find qm_controllers)/config/$(arg robot_type)/task.info"/>
+    <arg name="referenceFile" default="$(find qm_controllers)/config/$(arg robot_type)/reference.info"/>
+    <arg name="gaitCommandFile" default="$(find qm_controllers)/config/$(arg robot_type)/gait.info"/>
 
     <!-- make the files into global parameters -->
     <param name="urdfFile" value="$(arg urdfFile)"/>

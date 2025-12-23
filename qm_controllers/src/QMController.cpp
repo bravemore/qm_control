@@ -49,6 +49,8 @@ bool QMController::init(hardware_interface::RobotHW *robot_hw, ros::NodeHandle &
     setupMpc(controller_nh);
     setupMrt();
 
+    std::cout<<"generalizedCoordinatesNum:"<<qmInterface_->getCentroidalModelInfo().generalizedCoordinatesNum<<std::endl;//24
+
     CentroidalModelPinocchioMapping pinocchioMapping(qmInterface_->getCentroidalModelInfo());
     eeKinematicsPtr_ = std::make_shared<PinocchioEndEffectorKinematics>(qmInterface_->getPinocchioInterface(), pinocchioMapping,
                                                                         qmInterface_->modelSettings().contactNames3DoF);
@@ -104,20 +106,35 @@ void QMController::starting(const ros::Time &time) {
 
     // Initial target
     vector_t EeInitTarget(7), initTarget(qmInterface_->getInitialState().size() + 7);
-    EeInitTarget.head(3) << 0.52, 0.09, 0.38 + measuredRbdState_[5]; // + 0.056 = 0.436
-    EeInitTarget.tail(4) << Eigen::Quaternion<scalar_t>(-0.5, 0.5, -0.5, 0.5).coeffs();
+    // EeInitTarget.head(3) << 0.52, 0.09, 0.38 + measuredRbdState_[5]; // + 0.056 = 0.436
+    // EeInitTarget.tail(4) << Eigen::Quaternion<scalar_t>(-0.5, 0.5, -0.5, 0.5).coeffs();
+    EeInitTarget.head(3) << 0 + 0.177 + 0, 0 + 0 + 0, 0.3 + 0.37 + 0.057;// + 0.056 = 0.436
+    Eigen::Quaterniond q_controller_tmp;
+    q_controller_tmp.w() = 1;
+    q_controller_tmp.x() = 0;
+    q_controller_tmp.y() = 0;
+    q_controller_tmp.z() = 0;
+    EeInitTarget.tail(4) << q_controller_tmp.coeffs();
+
     vector_t initState = qmInterface_->getInitialState();
     vector_t armInitState = initState.tail(6);
     initTarget << currentObservation_.state.head(24), armInitState, EeInitTarget;
-    TargetTrajectories target_trajectories({currentObservation_.time}, {initTarget}, {currentObservation_.input});
+    TargetTrajectories target_trajectories({currentObservation_.time}, {initState}, {currentObservation_.input});
+
+    std::cout<<"state.dim:"<<currentObservation_.state.size()<<std::endl;//30
+    std::cout<<"input.dim:"<<currentObservation_.input.size()<<std::endl;//30
+    std::cout<<"initState:"<<initState.transpose()<<std::endl;//task里面的initial state
 
     // Set the first observation and command and wait for optimization to finish
     mpcMrtInterface_->setCurrentObservation(currentObservation_);
     mpcMrtInterface_->getReferenceManager().setTargetTrajectories(target_trajectories);
     ROS_INFO_STREAM("\033[32m Waiting for the initial policy ... \033[0m");
     while (!mpcMrtInterface_->initialPolicyReceived() && ros::ok()) {
-        mpcMrtInterface_->advanceMpc();
+        std::cout<<"i am in the loop"<<std::endl;
+        mpcMrtInterface_->advanceMpc();//问题出在这
+         std::cout<<"i  am still in the loop"<<std::endl;
         ros::WallRate(qmInterface_->mpcSettings().mrtDesiredFrequency_).sleep();
+        std::cout<<"i want out the loop"<<std::endl;
     }
     ROS_INFO_STREAM("\033[32m Initial policy has been received. \033[0m");
 
@@ -261,8 +278,8 @@ void QMController::setHybridJointHardware(hardware_interface::RobotHW *robot_hw,
     
     std::vector<std::string> joint_names{"LF_HAA", "LF_HFE", "LF_KFE", "LH_HAA", "LH_HFE", "LH_KFE",
                                          "RF_HAA", "RF_HFE", "RF_KFE", "RH_HAA", "RH_HFE", "RH_KFE",
-                                         "j2n6s300_joint_1", "j2n6s300_joint_2", "j2n6s300_joint_3",
-                                         "j2n6s300_joint_4", "j2n6s300_joint_5", "j2n6s300_joint_6"};
+                                         "z1_joint_1", "z1_joint_2", "z1_joint_3",
+                                         "z1_joint_4", "z1_joint_5", "z1_joint_6"};
 
     for (const auto& joint_name : joint_names) {
         hybridJointHandles_.push_back(hybridJointInterface->getHandle(joint_name));
@@ -377,22 +394,22 @@ void QMMpcController::setHybridJointHardware(hardware_interface::RobotHW *robot_
     // Arm
     cmd_pub_[0] =
             std::make_shared<realtime_tools::RealtimePublisher<std_msgs::Float64>>(controller_nh,
-                                                                                   "/joint_1_position_controller/command", 10);
+                                                                                   "/Joint01_controller/command", 10);
     cmd_pub_[1] =
             std::make_shared<realtime_tools::RealtimePublisher<std_msgs::Float64>>(controller_nh,
-                                                                                   "/joint_2_position_controller/command", 10);
+                                                                                   "/Joint02_controller/command", 10);
     cmd_pub_[2] =
             std::make_shared<realtime_tools::RealtimePublisher<std_msgs::Float64>>(controller_nh,
-                                                                                   "/joint_3_position_controller/command", 10);
+                                                                                   "/Joint03_controller/command", 10);
     cmd_pub_[3] =
             std::make_shared<realtime_tools::RealtimePublisher<std_msgs::Float64>>(controller_nh,
-                                                                                   "/joint_4_position_controller/command", 10);
+                                                                                   "/Joint04_controller/command", 10);
     cmd_pub_[4] =
             std::make_shared<realtime_tools::RealtimePublisher<std_msgs::Float64>>(controller_nh,
-                                                                                   "/joint_5_position_controller/command", 10);
+                                                                                   "/Joint05_controller/command", 10);
     cmd_pub_[5] =
             std::make_shared<realtime_tools::RealtimePublisher<std_msgs::Float64>>(controller_nh,
-                                                                                   "/joint_6_position_controller/command", 10);
+                                                                                   "/Joint06_controller/command", 10);
 
     arm_joint_sub_ = controller_nh.subscribe<sensor_msgs::JointState>("/joint_states", 1, &QMMpcController::jointStateCallback, this);
 }

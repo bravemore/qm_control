@@ -130,11 +130,8 @@ void QMController::starting(const ros::Time &time) {
     mpcMrtInterface_->getReferenceManager().setTargetTrajectories(target_trajectories);
     ROS_INFO_STREAM("\033[32m Waiting for the initial policy ... \033[0m");
     while (!mpcMrtInterface_->initialPolicyReceived() && ros::ok()) {
-        std::cout<<"i am in the loop"<<std::endl;
-        mpcMrtInterface_->advanceMpc();//问题出在这
-         std::cout<<"i  am still in the loop"<<std::endl;
+        mpcMrtInterface_->advanceMpc();
         ros::WallRate(qmInterface_->mpcSettings().mrtDesiredFrequency_).sleep();
-        std::cout<<"i want out the loop"<<std::endl;
     }
     ROS_INFO_STREAM("\033[32m Initial policy has been received. \033[0m");
 
@@ -211,7 +208,7 @@ void QMController::updateJointState(ocs2::vector_t& jointPos, ocs2::vector_t& jo
     jointVel.resize(hybridJointHandles_.size());
 
     for (size_t i = 0; i < hybridJointHandles_.size(); ++i) {
-        jointPos(i) = hybridJointHandles_[i].getPosition();
+        jointPos(i) = hybridJointHandles_[i].getPosition();//在每一个控制周期内，gazebo插件会自动更新硬件接口中的关节位置和速度值
         jointVel(i) = hybridJointHandles_[i].getVelocity();
     }
 }
@@ -225,7 +222,7 @@ void QMController::updateStateEstimation(const ros::Time &time, const ros::Durat
     matrix3_t orientationCovariance, angularVelCovariance, linearAccelCovariance;
 
     // Joint state
-    updateJointState(jointPos, jointVel);
+    updateJointState(jointPos, jointVel);//从硬件接口中读取关节位置和速度
 
     // Contact state
     for (size_t i = 0; i < contacts.size(); ++i) {
@@ -247,10 +244,12 @@ void QMController::updateStateEstimation(const ros::Time &time, const ros::Durat
     }
 
     // Update
-    stateEstimate_->updateJointStates(jointPos, jointVel);
+    stateEstimate_->updateJointStates(jointPos, jointVel);//把硬件接口中读到的关节位置和速度传递给状态估计模块
     stateEstimate_->updateContact(contactFlag);
     stateEstimate_->updateImu(quat, angularVel, linearAccel, orientationCovariance, angularVelCovariance, linearAccelCovariance);
     measuredRbdState_ = stateEstimate_->update(time, period); // state + ee
+    std::cout<<"measuredRbdState_ size:"<<measuredRbdState_.size()<<std::endl;//打印状态的维数
+    std::cout<<"measuredRbdState_:"<<measuredRbdState_.transpose()<<std::endl;
 
     currentObservation_.time += period.toSec();
     scalar_t yawLast = currentObservation_.state(9);

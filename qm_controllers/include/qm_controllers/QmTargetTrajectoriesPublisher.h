@@ -50,8 +50,13 @@ public:
         observationSub_ = nh.subscribe<ocs2_msgs::mpc_observation>(topicPrefix + "_mpc_observation", 1, observationCallback);
 
         lastEeTarget_ = vector_t::Zero(7);
-        lastEeTarget_.head(3) << 0.52, 0.09, 0.44;
-        lastEeTarget_.tail(4) << Eigen::Quaternion<scalar_t>(-0.5, 0.5, -0.5, 0.5).coeffs();
+        lastEeTarget_.head(3) << 0.177,0,0.518;
+        Eigen::Quaterniond q_traj_tmp1;
+        q_traj_tmp1.w() = 1;
+        q_traj_tmp1.x() = 0;
+        q_traj_tmp1.y() = 0;
+        q_traj_tmp1.z() = 0;
+        lastEeTarget_.tail(4) << q_traj_tmp1.coeffs();
 
         // current ee pose
         auto eePoseCallback = [this](const qm_msgs::ee_state::ConstPtr& msg){

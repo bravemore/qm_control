@@ -181,8 +181,8 @@ TargetTrajectories EEgoalPoseToTargetTrajectories(const Eigen::Vector3d& positio
         vector_t target(6);
         target.setZero();
         target = BaseCurrenPose;
-        target(0) = position(0) - 0.52;
-        target(1) = position(1) - 0.09;
+        target(0) = position(0) - 0.177;
+        target(1) = position(1) - 0.0;
         target(2) = COM_HEIGHT;
         target(4) = 0.0;
         target(5) = 0;

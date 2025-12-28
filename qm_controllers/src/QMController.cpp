@@ -3,8 +3,10 @@
 //
 
 #include <pinocchio/fwd.hpp>  // forward declarations must be included first.
+#include <pinocchio/algorithm/kinematics.hpp>
 #include <pinocchio/algorithm/frames.hpp>
 #include <pinocchio/algorithm/jacobian.hpp>
+
 
 #include "qm_controllers/QMController.h"
 #include <qm_estimation/FromTopiceEstimate.h>
@@ -104,26 +106,32 @@ void QMController::starting(const ros::Time &time) {
     currentObservation_.input.setZero(qmInterface_->getCentroidalModelInfo().inputDim);
     currentObservation_.mode = ModeNumber::STANCE;
 
-    // Initial target
+    // Initial target：初始的目标轨迹：states(24)+ee_state(7)
     vector_t EeInitTarget(7), initTarget(qmInterface_->getInitialState().size() + 7);
-    // EeInitTarget.head(3) << 0.52, 0.09, 0.38 + measuredRbdState_[5]; // + 0.056 = 0.436
-    // EeInitTarget.tail(4) << Eigen::Quaternion<scalar_t>(-0.5, 0.5, -0.5, 0.5).coeffs();
-    EeInitTarget.head(3) << 0 + 0.177 + 0, 0 + 0 + 0, 0.3 + 0.161 + 0.057;// + 0.056 = 0.436
-    Eigen::Quaterniond q_controller_tmp;
-    q_controller_tmp.w() = 1;
-    q_controller_tmp.x() = 0;
-    q_controller_tmp.y() = 0;
-    q_controller_tmp.z() = 0;
-    EeInitTarget.tail(4) << q_controller_tmp.coeffs();
-
-    vector_t initState = qmInterface_->getInitialState();
-    vector_t armInitState = initState.tail(6);
+    //尝试用qmInterface_里面initialState_，也就是task里面的initial state来设置末端初始位置
+    vector_t initialState = qmInterface_->getInitialState();
+    // 假设在 QMController::starting(...)
+    const auto& info = qmInterface_->getCentroidalModelInfo();
+    const auto& model = qmInterface_->getPinocchioInterface().getModel();
+    auto& data = qmInterface_->getPinocchioInterface().getData();
+    pinocchio::forwardKinematics(model, data, centroidal_model::getGeneralizedCoordinates(initialState, info));
+    pinocchio::updateFramePlacements(model, data);
+    const std::string eeName = qmInterface_->modelSettings().info.eeFrame;
+    const auto eeBodyId = model.getFrameId(eeName); // 若 name 对应 body
+    const Eigen::Vector3d eePos = data.oMf[eeBodyId].translation();
+    const Eigen::Quaterniond eeQuat(data.oMf[eeBodyId].rotation());
+    EeInitTarget.head(3) << eePos.x(), eePos.y(), eePos.z() ;
+    EeInitTarget.tail(4) << eeQuat.coeffs(); // coeffs() 返回 [x,y,z,w]
+    ROS_INFO_STREAM("EeInitTarget pos: " << EeInitTarget.head(3).transpose()
+                    << " quat(x,y,z,w): " << EeInitTarget.tail(4).transpose());
+    vector_t armInitState = initialState.tail(6);
+    std::cout<<"armInitState:"<<armInitState.transpose()<<std::endl;//task里面的initial state的手臂部分
     initTarget << currentObservation_.state.head(24), armInitState, EeInitTarget;
     TargetTrajectories target_trajectories({currentObservation_.time}, {initTarget}, {currentObservation_.input});
 
     std::cout<<"state.dim:"<<currentObservation_.state.size()<<std::endl;//30
     std::cout<<"input.dim:"<<currentObservation_.input.size()<<std::endl;//30
-    std::cout<<"initState:"<<initState.transpose()<<std::endl;//task里面的initial state
+    std::cout<<"initState:"<<initialState.transpose()<<std::endl;//task里面的initial state
 
     // Set the first observation and command and wait for optimization to finish
     mpcMrtInterface_->setCurrentObservation(currentObservation_);
@@ -248,8 +256,6 @@ void QMController::updateStateEstimation(const ros::Time &time, const ros::Durat
     stateEstimate_->updateContact(contactFlag);
     stateEstimate_->updateImu(quat, angularVel, linearAccel, orientationCovariance, angularVelCovariance, linearAccelCovariance);
     measuredRbdState_ = stateEstimate_->update(time, period); // state + ee
-    std::cout<<"measuredRbdState_ size:"<<measuredRbdState_.size()<<std::endl;//打印状态的维数
-    std::cout<<"measuredRbdState_:"<<measuredRbdState_.transpose()<<std::endl;
 
     currentObservation_.time += period.toSec();
     scalar_t yawLast = currentObservation_.state(9);
@@ -453,6 +459,7 @@ void QMMpcController::updateControlLaw(const vector_t &posDes, const vector_t &v
             {
                 cmd_pub_[j]->msg_.data =
                     currentObservation_.state(24 + j) + velDes(12 + j) * 1.0 / 100.0;
+                    // posDes(12 + j);
                 cmd_pub_[j]->unlockAndPublish();
             }
         }

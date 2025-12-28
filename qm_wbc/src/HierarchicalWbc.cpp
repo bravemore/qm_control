@@ -19,7 +19,7 @@ vector_t HierarchicalWbc::update(const vector_t& stateDesired, const vector_t& i
                                  scalar_t period, scalar_t time) {
 
     WbcBase::update(stateDesired, inputDesired, rbdStateMeasured, mode, period, time);
-
+    //Task返回的是a，b，d，f矩阵的组合
     Task task0 = formulateFloatingBaseEomTask() + formulateTorqueLimitsTask()
             + formulateNoContactMotionTask() + formulateFrictionConeTask();
     Task taskInit = formulateArmJointNomalTrackingTask();
@@ -33,6 +33,7 @@ vector_t HierarchicalWbc::update(const vector_t& stateDesired, const vector_t& i
     {
         HoQp hoQp(task2, std::make_shared<HoQp>(taskInit, std::make_shared<HoQp>(task0)));
         vector_t x_optimal = hoQp.getSolutions();
+        //决策变量x_optimal包括两个量：机器人关节的加速度和接触力。但返回的cmd中还包括关节力矩
         return WbcBase::updateCmd(x_optimal);
     }
     else

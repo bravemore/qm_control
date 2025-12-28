@@ -181,9 +181,10 @@ TargetTrajectories EEgoalPoseToTargetTrajectories(const Eigen::Vector3d& positio
         vector_t target(6);
         target.setZero();
         target = BaseCurrenPose;
-        target(0) = position(0) - 0.177;
+        target(0) = position(0) - 0.177;//在由末端位姿形成目标轨迹时，这个0.177是基座到末端的固定偏移，手动设置的
         target(1) = position(1) - 0.0;
         target(2) = COM_HEIGHT;
+        target(3) = 0.0;
         target(4) = 0.0;
         target(5) = 0;
         return target;
@@ -225,7 +226,7 @@ int main(int argc, char* argv[]) {
     loadData::loadEigenMatrix(referenceFile, "defaultJointState", DEFAULT_JOINT_STATE);
     loadData::loadCppDataType(referenceFile, "targetRotationVelocity", TARGET_ROTATION_VELOCITY);
     loadData::loadCppDataType(referenceFile, "targetDisplacementVelocity", TARGET_DISPLACEMENT_VELOCITY);
-    loadData::loadCppDataType(taskFile, "mpc.timeHorizon", TIME_TO_TARGET);
+    loadData::loadCppDataType(taskFile, "mpc.timeHorizon", TIME_TO_TARGET);//1s
 
     QmTargetTrajectoriesInteractiveMarker targetPoseCommand(nodeHandle, robotName,
                                                             &EEgoalPoseToTargetTrajectories,

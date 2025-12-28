@@ -89,7 +89,7 @@ visualization_msgs::InteractiveMarker QmTargetTrajectoriesInteractiveMarker::cre
 
     return interactiveMarker;
 }
-
+//输入参数feedback会包含交互器的最新位姿和若干交互相关的字段
 void QmTargetTrajectoriesInteractiveMarker::processFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback) {
     const Eigen::Vector3d EePosition(feedback->pose.position.x, feedback->pose.position.y, feedback->pose.position.z);
     const Eigen::Quaterniond EeOrientation(feedback->pose.orientation.w, feedback->pose.orientation.x,

@@ -42,7 +42,7 @@ public:
         // Trajectories publisher
         targetTrajectoriesPublisher_.reset(new TargetTrajectoriesRosPublisher(nh, topicPrefix));
 
-        // observation subscriber
+        // observation subscriber,把此时的系统状态订阅到latestObservation_
         auto observationCallback = [this](const ocs2_msgs::mpc_observation::ConstPtr& msg) {
             std::lock_guard<std::mutex> lock(latestObservationMutex_);
             latestObservation_ = ros_msg_conversions::readObservationMsg(*msg);
@@ -58,7 +58,7 @@ public:
         q_traj_tmp1.z() = 0;
         lastEeTarget_.tail(4) << q_traj_tmp1.coeffs();
 
-        // current ee pose
+        // current ee pose,把此时的末端执行器状态订阅到latestObservationEe_
         auto eePoseCallback = [this](const qm_msgs::ee_state::ConstPtr& msg){
             std::lock_guard<std::mutex> lock(latestObservationEeMutex_);
             {
@@ -109,7 +109,9 @@ public:
         dogCmdVelSub_ = nh.subscribe<geometry_msgs::Twist>("/cmd_vel", 1, cmdVelCallback);
 
         // interactive marker
+        //用户右键交互器并选择 "Send target pose" 菜单项时，会调用 processFeedback 方法
         menuHandler_.insert("Send target pose", boost::bind(&QmTargetTrajectoriesInteractiveMarker::processFeedback, this, _1));
+        //在创建交互器的时候会定义初始位置和姿态
         auto interactiveMarker = createInteractiveMarker();
         server_.insert(interactiveMarker);
         menuHandler_.apply(server_, interactiveMarker.name);

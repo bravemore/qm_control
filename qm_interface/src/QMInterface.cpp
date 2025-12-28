@@ -101,11 +101,16 @@ void QMInterface::setupOptimalControlProblem(const std::string &taskFile, const 
 
     // 2. ee cost
     // TODO: switch for user
+    //getEndEffectorConstraint函数返回的是一个StateCost的智能指针，这个StateCost实际上是一个软约束（StateSoftConstraint）。代表的是预测时域内末端执行器位置和参考轨迹之间的跟踪误差。
     problemPtr_->stateSoftConstraintPtr->add("endEffector", getEndEffectorConstraint(*pinocchioInterfacePtr_, taskFile, "endEffector", verbose));
+    //最后一步的末端执行器位置约束
     problemPtr_->finalSoftConstraintPtr->add("finalEndEffector", getEndEffectorConstraint(*pinocchioInterfacePtr_, taskFile, "finalEndEffector", verbose));
 
     // Constraint terms
     // 1. joint limits constraint
+    //getJointLimitSoftConstraint返回的是臂关节位置和关节速度上下限的软约束，就是说，如果臂关节的位置或者速度超过了设定的上下限，就会受到一定的惩罚，从而在优化过程中避免这种情况发生。
+    //加载的两个参数mu和delta分别表示软约束的惩罚系数和松弛变量的大小，具体来说，mu表示当关节位置或速度超过上下限时，所受到的惩罚力度，而delta则表示允许关节位置或速度超过上下限的最大范围。
+    //就是mu越大，惩罚力度越大；delta越小，允许超过的范围越小。
     problemPtr_->softConstraintPtr->add("armJointLimits", getJointLimitSoftConstraint(*pinocchioInterfacePtr_, taskFile, verbose));
 
 
@@ -117,15 +122,15 @@ void QMInterface::setupOptimalControlProblem(const std::string &taskFile, const 
     for (size_t i = 0; i < centroidalModelInfo_.numThreeDofContacts; i++) {
         const std::string& footName = modelSettings_.contactNames3DoF[i];
         std::unique_ptr<EndEffectorKinematics<scalar_t>> eeKinematicsPtr = getEeKinematicsPtr({footName}, footName);
-
+        //摩擦锥软约束
         problemPtr_->softConstraintPtr->add(footName + "_frictionCone",
                                             getFrictionConeSoftConstraint(i, frictionCoefficient, barrierPenaltyConfig));
-
+        //足端腾空时的零力约束
         problemPtr_->equalityConstraintPtr->add(footName + "_zeroForce", std::unique_ptr<StateInputConstraint>(new ZeroForceConstraint(
                 *referenceManagerPtr_, i, centroidalModelInfo_)));
-
+        //足端接触地时的零速度约束    
         problemPtr_->equalityConstraintPtr->add(footName + "_zeroVelocity", getZeroVelocityConstraint(*eeKinematicsPtr, i));
-
+        //足端法向速度约束
         problemPtr_->equalityConstraintPtr->add(
                 footName + "_normalVelocity",
                 std::unique_ptr<StateInputConstraint>(new NormalVelocityConstraintCppAd(*referenceManagerPtr_, *eeKinematicsPtr, i)));
@@ -135,6 +140,7 @@ void QMInterface::setupOptimalControlProblem(const std::string &taskFile, const 
     setupPreComputation(taskFile, urdfFile, referenceFile, verbose);
 
     // Rollout
+    //用来在给定时间内，根据动力学模型积分得到系统状态的轨迹。
     rolloutPtr_ = std::make_unique<TimeTriggeredRollout>(*problemPtr_->dynamicsPtr, rolloutSettings_);
 
     // Initialization
